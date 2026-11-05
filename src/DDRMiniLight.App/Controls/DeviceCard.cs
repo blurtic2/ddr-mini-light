@@ -23,7 +23,7 @@ internal sealed class DeviceCard : Panel
         BorderStyle = BorderStyle.FixedSingle;
         Padding = new Padding(S(8));
         Margin = new Padding(S(6));
-        Size = new Size(S(190), S(296));
+        Size = new Size(S(190), S(330));
 
         // ── 머리글: 1P/2P 배지 + 제품명 ─────────────
         var header = new Panel { Dock = DockStyle.Top, Height = S(28) };
@@ -116,6 +116,7 @@ internal sealed class DeviceCard : Panel
         set
         {
             _side = value;
+            _pad.Side = value;
             _badge.Text = value switch { PadSide.P1 => "1P", PadSide.P2 => "2P", _ => "?" };
             _badge.BackColor = SideColors.For(value);
             _p1Button.Checked = value == PadSide.P1;

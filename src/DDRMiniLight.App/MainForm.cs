@@ -35,8 +35,8 @@ internal sealed class MainForm : Form
         Text = "DDR Mini Light";
         Icon = icon;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(640, 764);
-        MinimumSize = new Size(520, 714);
+        ClientSize = new Size(640, 798);
+        MinimumSize = new Size(520, 748);
         KeyPreview = true;
 
         // ── 장치 영역 ─────────────────────────────
@@ -123,7 +123,7 @@ internal sealed class MainForm : Form
         settingsRow.Controls.Add(optionGroup, 1, 0);
 
         var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(8) };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 390));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 424));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.Controls.Add(deviceGroup, 0, 0);

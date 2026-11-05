@@ -5,19 +5,21 @@ using DDRMiniLight.App.Controls;
 namespace DDRMiniLight.App;
 
 /// <summary>
-/// DDR 패드 모양의 앱/트레이 아이콘을 그립니다.
-/// 3×3 칸 중 십자 위치에 화살표 패널(좌우 파랑, 위아래 빨강)을 배치합니다.
+/// DDR Classic Mini 패드 모양의 앱/트레이 아이콘을 그립니다.
+/// 은색 판 위 십자 위치에 검은 패널과 화살표(위아래 분홍, 좌우 하늘색)를 배치합니다.
 /// </summary>
 internal static class AppIcons
 {
-    private static readonly Color FrameColor = Color.FromArgb(52, 56, 64);
-    private static readonly Color PlateColor = Color.FromArgb(150, 156, 166);
+    private static readonly Color PlateTop = Color.FromArgb(214, 217, 222);
+    private static readonly Color PlateBottom = Color.FromArgb(160, 164, 170);
+    private static readonly Color PlateEdge = Color.FromArgb(90, 94, 100);
+    private static readonly Color PanelBlack = Color.FromArgb(24, 24, 28);
 
     // 위쪽을 가리키는 화살표, 중심 (0,0) 기준 [-1, 1] 범위
     private static readonly PointF[] ArrowShape =
     [
-        new(0f, -0.95f), new(0.9f, 0.0f), new(0.38f, 0.0f), new(0.38f, 0.9f),
-        new(-0.38f, 0.9f), new(-0.38f, 0.0f), new(-0.9f, 0.0f),
+        new(0f, -0.95f), new(0.9f, 0.0f), new(0.4f, 0.0f), new(0.4f, 0.9f),
+        new(-0.4f, 0.9f), new(-0.4f, 0.0f), new(-0.9f, 0.0f),
     ];
 
     /// <param name="size">아이콘 한 변의 픽셀 크기.</param>
@@ -39,19 +41,21 @@ internal static class AppIcons
         g.Clear(Color.Transparent);
 
         float s = size;
-        // 트레이 크기(16~24px)에서는 회색 판을 빼고 색 패널만 크게 그립니다.
+        // 트레이 크기(16~24px)에서는 화살표 대신 색 패널만 크게 그립니다.
         bool tiny = size <= 24;
 
-        // 바깥 프레임
-        float framePad = tiny ? 0f : s * 0.02f;
-        var frame = new RectangleF(framePad, framePad, s - framePad * 2, s - framePad * 2);
-        using (var path = RoundedRect(frame, s * 0.14f))
-        using (var brush = new SolidBrush(FrameColor))
-            g.FillPath(brush, path);
+        // 은색 판
+        var plate = new RectangleF(0.5f, 0.5f, s - 1f, s - 1f);
+        using (var path = RoundedRect(plate, s * 0.14f))
+        {
+            using (var brush = new LinearGradientBrush(plate, PlateTop, PlateBottom, LinearGradientMode.Vertical))
+                g.FillPath(brush, path);
+            using (var pen = new Pen(PlateEdge, Math.Max(1f, s * 0.03f)))
+                g.DrawPath(pen, path);
+        }
 
-        // 3×3 칸
-        float inset = s * (tiny ? 0.08f : 0.08f);
-        float gap = tiny ? Math.Max(0.5f, s * 0.02f) : Math.Max(1f, s * 0.035f);
+        float inset = s * (tiny ? 0.1f : 0.09f);
+        float gap = tiny ? Math.Max(0.5f, s * 0.03f) : s * 0.025f;
         float cell = (s - inset * 2 - gap * 2) / 3f;
 
         (int Col, int Row, float Angle, Color Color)[] arrows =
@@ -62,18 +66,19 @@ internal static class AppIcons
             (1, 2, 180f, PadView.UpDownColor),
         ];
 
-        if (tiny)
+        foreach (var (col, row, angle, color) in arrows)
         {
-            foreach (var (col, row, angle, color) in arrows)
+            var rect = new RectangleF(inset + col * (cell + gap), inset + row * (cell + gap), cell, cell);
+            var c = active ? color : Grayscale(color);
+
+            if (tiny)
             {
-                var rect = new RectangleF(inset + col * (cell + gap), inset + row * (cell + gap), cell, cell);
-                using (var panel = RoundedRect(rect, cell * 0.2f))
-                using (var brush = new SolidBrush(active ? color : Grayscale(color)))
+                using (var panel = RoundedRect(rect, cell * 0.18f))
+                using (var brush = new SolidBrush(c))
                     g.FillPath(brush, panel);
 
                 if (size >= 20)
                 {
-                    // 작은 크기에서는 화살촉(삼각형)만 흰색으로
                     using var head = new GraphicsPath();
                     head.AddPolygon(new PointF[] { new(0f, -0.7f), new(0.7f, 0.35f), new(-0.7f, 0.35f) });
                     using var m = new Matrix();
@@ -83,37 +88,27 @@ internal static class AppIcons
                     head.Transform(m);
                     g.FillPath(Brushes.White, head);
                 }
+                continue;
             }
-            return bitmap;
-        }
 
-        for (int row = 0; row < 3; row++)
-        {
-            for (int col = 0; col < 3; col++)
-            {
-                var rect = new RectangleF(inset + col * (cell + gap), inset + row * (cell + gap), cell, cell);
-                using var plate = RoundedRect(rect, cell * 0.18f);
-                using var plateBrush = new SolidBrush(PlateColor);
-                g.FillPath(plateBrush, plate);
-            }
-        }
+            // 검은 패널 + 흰 테두리 화살표
+            using (var panel = RoundedRect(rect, cell * 0.08f))
+            using (var black = new SolidBrush(PanelBlack))
+                g.FillPath(black, panel);
 
-        foreach (var (col, row, angle, color) in arrows)
-        {
-            var rect = new RectangleF(inset + col * (cell + gap), inset + row * (cell + gap), cell, cell);
-            using var path = new GraphicsPath();
-            path.AddPolygon(ArrowShape);
+            using var arrow = new GraphicsPath();
+            arrow.AddPolygon(ArrowShape);
             using var matrix = new Matrix();
             matrix.Translate(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
             matrix.Rotate(angle);
-            float r = cell * 0.42f;
+            float r = cell * 0.4f;
             matrix.Scale(r, r);
-            path.Transform(matrix);
+            arrow.Transform(matrix);
 
-            using var brush = new SolidBrush(active ? color : Grayscale(color));
-            g.FillPath(brush, path);
-            using var pen = new Pen(Color.FromArgb(200, Color.White), Math.Max(1f, s * 0.015f));
-            g.DrawPath(pen, path);
+            using (var brush = new SolidBrush(c))
+                g.FillPath(brush, arrow);
+            using (var pen = new Pen(Color.White, Math.Max(1f, s * 0.018f)) { LineJoin = LineJoin.Round })
+                g.DrawPath(pen, arrow);
         }
 
         return bitmap;
