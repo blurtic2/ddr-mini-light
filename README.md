@@ -49,13 +49,19 @@ dotnet build -c Release
 dotnet test
 ```
 
-실행 파일: `src/DDRMiniLight.App/bin/Release/net8.0-windows/DDRMiniLight.exe`
+### 실행용 exe 만들기
 
-단일 exe로 배포하려면:
+저장소 루트의 `output` 폴더에 단일 exe(`DDRMiniLight.exe`, 약 0.5MB, .NET 8 Desktop Runtime 필요)를 만듭니다.
 
 ```bash
-dotnet publish src/DDRMiniLight.App -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
+dotnet publish src/DDRMiniLight.App -p:PublishProfile=Local
 ```
+
+Visual Studio에서는 프로젝트 우클릭 → **게시** → **Local**을 선택해도 같습니다.
+
+- 평소에는 `output\DDRMiniLight.exe`를 실행해서 쓰고, "Windows 시작 시 자동 실행"도 이 exe에서 켜 두세요.
+- 다시 게시하기 전에 트레이에서 앱을 종료하세요. 실행 중에는 exe가 잠겨서 덮어쓸 수 없습니다.
+- 앱이 트레이에 떠 있으면 VS에서 디버그 실행해도 중복 실행 방지 때문에 기존 창만 열리고 종료됩니다.
 
 ## 프로토콜 메모
 

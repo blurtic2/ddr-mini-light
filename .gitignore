@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# 로컬 게시 결과 (Local.pubxml)
+/output/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -185,6 +188,8 @@ publish/
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
+# 비밀 정보가 없는 로컬 게시 프로필은 커밋
+!src/DDRMiniLight.App/Properties/PublishProfiles/Local.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
