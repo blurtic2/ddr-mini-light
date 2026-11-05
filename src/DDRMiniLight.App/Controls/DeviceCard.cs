@@ -23,7 +23,7 @@ internal sealed class DeviceCard : Panel
         BorderStyle = BorderStyle.FixedSingle;
         Padding = new Padding(S(8));
         Margin = new Padding(S(6));
-        Size = new Size(S(190), S(262));
+        Size = new Size(S(190), S(296));
 
         // ── 머리글: 1P/2P 배지 + 제품명 ─────────────
         var header = new Panel { Dock = DockStyle.Top, Height = S(28) };
@@ -157,6 +157,10 @@ internal sealed class DeviceCard : Panel
         if (buttons.HasFlag(PadButtons.Down)) parts.Add("↓");
         if (buttons.HasFlag(PadButtons.Up)) parts.Add("↑");
         if (buttons.HasFlag(PadButtons.Right)) parts.Add("→");
+        if (buttons.HasFlag(PadButtons.MenuLeft)) parts.Add("메뉴◀");
+        if (buttons.HasFlag(PadButtons.Cancel)) parts.Add("취소");
+        if (buttons.HasFlag(PadButtons.Select)) parts.Add("선택");
+        if (buttons.HasFlag(PadButtons.MenuRight)) parts.Add("메뉴▶");
         return string.Join(" ", parts);
     }
 

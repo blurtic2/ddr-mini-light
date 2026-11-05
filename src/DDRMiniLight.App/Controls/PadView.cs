@@ -7,6 +7,7 @@ namespace DDRMiniLight.App.Controls;
 /// <summary>
 /// 컨트롤러 화살표 4개를 십자 배치로 그립니다.
 /// 눌린 버튼은 색으로 채우고, LED가 켜진 버튼은 바깥에 노란 테두리를 그립니다.
+/// 아래쪽에는 메뉴 좌, 취소, 선택, 메뉴 우 버튼을 그립니다.
 /// </summary>
 internal sealed class PadView : Control
 {
@@ -14,6 +15,7 @@ internal sealed class PadView : Control
     internal static readonly Color LeftRightColor = Color.FromArgb(46, 139, 255);
     internal static readonly Color UpDownColor = Color.FromArgb(232, 64, 96);
     private static readonly Color LightColor = Color.FromArgb(255, 200, 40);
+    private static readonly Color MenuPressedColor = Color.FromArgb(245, 150, 30);
 
     // 위쪽을 가리키는 화살표, 중심 (0,0) 기준 [-1, 1] 범위
     private static readonly PointF[] ArrowShape =
@@ -70,9 +72,13 @@ internal sealed class PadView : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(BackColor);
 
-        float cell = Math.Min(ClientSize.Width, ClientSize.Height) / 3f;
+        // 세로: 화살표 3칸 + 간격 + 아래쪽 버튼 줄
+        const float MenuGap = 0.2f, MenuHeight = 0.55f;
+        float cell = Math.Min(ClientSize.Width / 3f, ClientSize.Height / (3f + MenuGap + MenuHeight));
         float offsetX = (ClientSize.Width - cell * 3) / 2f;
-        float offsetY = (ClientSize.Height - cell * 3) / 2f;
+        float offsetY = (ClientSize.Height - cell * (3f + MenuGap + MenuHeight)) / 2f;
+
+        DrawMenuButtons(g, new RectangleF(offsetX, offsetY + cell * (3f + MenuGap), cell * 3, cell * MenuHeight));
 
         // 가운데 칸
         using (var centerBrush = new SolidBrush(ControlPaint.Light(BackColor, 0.3f)))
@@ -105,6 +111,39 @@ internal sealed class PadView : Control
 
         RectangleF CellRect(int column, int row) =>
             new(offsetX + column * cell, offsetY + row * cell, cell, cell);
+    }
+
+    private static readonly (PadButtons Button, string Label)[] MenuLayout =
+    [
+        (PadButtons.MenuLeft, "◀"),
+        (PadButtons.Cancel, "취소"),
+        (PadButtons.Select, "선택"),
+        (PadButtons.MenuRight, "▶"),
+    ];
+
+    /// <summary>패드 아래쪽 버튼 4개 (메뉴 좌, 취소, 선택, 메뉴 우). LED는 없습니다.</summary>
+    private void DrawMenuButtons(Graphics g, RectangleF row)
+    {
+        float spacing = row.Height * 0.25f;
+        float width = (row.Width - spacing * (MenuLayout.Length - 1)) / MenuLayout.Length;
+
+        using var font = new Font(Font.FontFamily, Math.Max(6f, row.Height * 0.36f), FontStyle.Bold, GraphicsUnit.Pixel);
+        using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+
+        for (int i = 0; i < MenuLayout.Length; i++)
+        {
+            var (button, label) = MenuLayout[i];
+            bool pressed = (_buttons & button) != 0;
+            var rect = new RectangleF(row.X + i * (width + spacing), row.Y, width, row.Height);
+
+            using var path = RoundedRect(rect, row.Height * 0.3f);
+            using (var fill = new SolidBrush(pressed ? MenuPressedColor : ControlPaint.Light(BackColor, 0.5f)))
+                g.FillPath(fill, path);
+            using (var outline = new Pen(pressed ? ControlPaint.Dark(MenuPressedColor, 0.1f) : Color.FromArgb(90, ForeColor), 1.2f))
+                g.DrawPath(outline, path);
+            using (var text = new SolidBrush(pressed ? Color.White : Color.FromArgb(150, ForeColor)))
+                g.DrawString(label, font, text, rect, format);
+        }
     }
 
     private static GraphicsPath ArrowPath(RectangleF cell, float angle, float radius)

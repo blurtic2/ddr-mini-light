@@ -18,11 +18,17 @@ public static class DdrMiniProtocol
 
     public const byte LightReportId = 0x05;
 
-    // 입력 리포트: byte[3] bit5 = Left, bit4 = Down / byte[4] bit2 = Up, bit3 = Right
+    // 입력 리포트 (ID 1): [1] X축, [2] Y축, [3..4] HID 버튼 1~16
+    //   byte[3]: bit0 = 선택(1), bit1 = 취소(2), bit4 = Down(5), bit5 = Left(6), bit6 = 메뉴 좌(7), bit7 = 메뉴 우(8)
+    //   byte[4]: bit2 = Up(11), bit3 = Right(12)
     private const int InputIndexA = 3;
     private const int InputIndexB = 4;
-    private const int LeftBit = 5;
+    private const int SelectBit = 0;
+    private const int CancelBit = 1;
     private const int DownBit = 4;
+    private const int LeftBit = 5;
+    private const int MenuLeftBit = 6;
+    private const int MenuRightBit = 7;
     private const int UpBit = 2;
     private const int RightBit = 3;
 
@@ -46,6 +52,10 @@ public static class DdrMiniProtocol
         if ((a & (1 << DownBit)) != 0) result |= PadButtons.Down;
         if ((b & (1 << UpBit)) != 0) result |= PadButtons.Up;
         if ((b & (1 << RightBit)) != 0) result |= PadButtons.Right;
+        if ((a & (1 << MenuLeftBit)) != 0) result |= PadButtons.MenuLeft;
+        if ((a & (1 << CancelBit)) != 0) result |= PadButtons.Cancel;
+        if ((a & (1 << SelectBit)) != 0) result |= PadButtons.Select;
+        if ((a & (1 << MenuRightBit)) != 0) result |= PadButtons.MenuRight;
         return result;
     }
 

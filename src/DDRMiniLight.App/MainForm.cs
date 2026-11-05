@@ -35,8 +35,8 @@ internal sealed class MainForm : Form
         Text = "DDR Mini Light";
         Icon = icon;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(640, 730);
-        MinimumSize = new Size(520, 680);
+        ClientSize = new Size(640, 764);
+        MinimumSize = new Size(520, 714);
         KeyPreview = true;
 
         // ── 장치 영역 ─────────────────────────────
@@ -123,7 +123,7 @@ internal sealed class MainForm : Form
         settingsRow.Controls.Add(optionGroup, 1, 0);
 
         var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(8) };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 356));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 390));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.Controls.Add(deviceGroup, 0, 0);
@@ -254,7 +254,7 @@ internal sealed class MainForm : Form
         _assigningSide = side;
         _assignButton.Text = "취소";
         _assignPrompt.ForeColor = SideColors.For(side);
-        _assignPrompt.Text = $"{(side == PadSide.P1 ? "1P" : "2P")} 패드의 아무 화살표나 밟으세요.  (Esc: 취소)";
+        _assignPrompt.Text = $"{(side == PadSide.P1 ? "1P" : "2P")} 패드의 아무 버튼이나 누르세요.  (Esc: 취소)";
     }
 
     private void EndAssign(string message)

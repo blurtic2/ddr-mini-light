@@ -138,7 +138,7 @@ public sealed class DeviceManager : IDisposable
         PadButtons[] sequence =
         [
             PadButtons.Left, PadButtons.Down, PadButtons.Up, PadButtons.Right,
-            PadButtons.All, PadButtons.None, PadButtons.All, PadButtons.None,
+            PadButtons.Arrows, PadButtons.None, PadButtons.Arrows, PadButtons.None,
         ];
 
         try

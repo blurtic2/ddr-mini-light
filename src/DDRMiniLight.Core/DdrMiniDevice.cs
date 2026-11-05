@@ -141,7 +141,7 @@ public sealed class DdrMiniDevice : IDisposable
         {
             for (int i = 0; i < times; i++)
             {
-                SetLightOverride(PadButtons.All);
+                SetLightOverride(PadButtons.Arrows);
                 await Task.Delay(200, cancellationToken).ConfigureAwait(false);
                 SetLightOverride(PadButtons.None);
                 await Task.Delay(150, cancellationToken).ConfigureAwait(false);
@@ -199,8 +199,9 @@ public sealed class DdrMiniDevice : IDisposable
     private PadButtons DesiredLights() =>
         _lightOverride ?? _lightMode switch
         {
-            LightMode.Mirror => _buttons,
-            LightMode.AlwaysOn => PadButtons.All,
+            // LED는 화살표에만 있으므로 아래쪽 버튼은 제외합니다.
+            LightMode.Mirror => _buttons & PadButtons.Arrows,
+            LightMode.AlwaysOn => PadButtons.Arrows,
             _ => PadButtons.None,
         };
 
