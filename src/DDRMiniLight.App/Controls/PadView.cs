@@ -10,8 +10,9 @@ namespace DDRMiniLight.App.Controls;
 /// </summary>
 internal sealed class PadView : Control
 {
-    private static readonly Color LeftRightColor = Color.FromArgb(232, 64, 160);
-    private static readonly Color UpDownColor = Color.FromArgb(46, 139, 255);
+    // 실물 패널 색: 좌우는 파랑, 위아래는 빨강
+    internal static readonly Color LeftRightColor = Color.FromArgb(46, 139, 255);
+    internal static readonly Color UpDownColor = Color.FromArgb(232, 64, 96);
     private static readonly Color LightColor = Color.FromArgb(255, 200, 40);
 
     // 위쪽을 가리키는 화살표, 중심 (0,0) 기준 [-1, 1] 범위

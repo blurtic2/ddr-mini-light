@@ -9,6 +9,8 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationVisualStyles>true</ApplicationVisualStyles>
     <ApplicationDefaultFont>Segoe UI, 9pt</ApplicationDefaultFont>
+    <!-- AppIcons.Render로 생성한 아이콘 (exe/작업 표시줄용). 트레이 아이콘은 런타임에 그립니다. -->
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
