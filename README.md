@@ -8,7 +8,7 @@ A Windows tray app that lights up the arrow LEDs of the **DDR Classic Mini** 1P/
 
 ## Features
 
-- Lights up the LED of each pressed arrow (modes: **pressed buttons only** / **always on** / **off**)
+- Lights up the LED of each pressed arrow (modes: **Light pressed buttons** / **Always on** / **Off**)
 - Supports multiple pads at once, with automatic USB connect/disconnect detection
 - 1P/2P assignment: click **Assign 1P/2P by pressing** and press any button on the 1P pad, or use the 1P/2P buttons on each pad card
   - Assigned pads are shown in 1P → 2P order. The **Identify** button blinks that pad's LEDs
@@ -17,7 +17,7 @@ A Windows tray app that lights up the arrow LEDs of the **DDR Classic Mini** 1P/
 - Optional start with Windows (starts hidden in the tray)
 - Single instance: launching it again opens the existing window
 - Turns all LEDs off on exit
-- English, Korean, and Japanese UI. Follows the Windows display language by default; change it under **Options → Language**
+- English, Korean, and Japanese UI. Follows the Windows display language by default; change it under **Options → Language** (the app restarts to apply it)
 
 ## Download
 
@@ -42,6 +42,7 @@ DDRMiniLight.sln
 │  │  ├─ DdrMiniProtocol.cs       Input/LED report format (bit positions)
 │  │  ├─ DdrMiniDevice.cs         One pad: reader thread, LED output
 │  │  ├─ DeviceManager.cs         Connect/disconnect detection, device list, LED test
+│  │  ├─ DeviceLogEventArgs.cs    Device events for the log (the app turns them into text)
 │  │  ├─ PadSideMap.cs            Device path → 1P/2P assignment (swap, auto-assign)
 │  │  ├─ PadSide.cs               1P / 2P / unassigned
 │  │  ├─ PadButtons.cs            Button/LED flags

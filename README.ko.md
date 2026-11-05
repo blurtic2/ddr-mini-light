@@ -17,7 +17,7 @@ DDR Classic Mini의 1P/2P 패드(PHOENIXWAN, VID `0x33DD` / PID `0x0014`)를 PC�
 - Windows 시작 시 자동 실행 (창 없이 트레이로 시작)
 - 중복 실행 방지: 다시 실행하면 기존 창이 열림
 - 종료할 때 LED를 모두 끔
-- 한국어, 영어, 일본어 화면 지원. 기본은 Windows 표시 언어를 따르고, **옵션 → 언어**에서 바꿀 수 있음
+- 한국어, 영어, 일본어 화면 지원. 기본은 Windows 표시 언어를 따르고, **옵션 → 언어**에서 바꿀 수 있음 (바꾸면 앱이 다시 시작됨)
 
 ## 다운로드
 
@@ -42,6 +42,7 @@ DDRMiniLight.sln
 │  │  ├─ DdrMiniProtocol.cs       입력/LED 리포트 형식 (비트 위치)
 │  │  ├─ DdrMiniDevice.cs         장치 한 대: 읽기 스레드, LED 쓰기
 │  │  ├─ DeviceManager.cs         연결/분리 감지, 장치 목록, LED 테스트
+│  │  ├─ DeviceLogEventArgs.cs    로그용 장치 사건 (문장은 앱에서 생성)
 │  │  ├─ PadSideMap.cs            장치 경로 → 1P/2P 지정 (맞바꾸기, 자동 지정)
 │  │  ├─ PadSide.cs               1P / 2P / 미지정
 │  │  ├─ PadButtons.cs            버튼/LED 플래그
