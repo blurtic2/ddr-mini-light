@@ -104,7 +104,8 @@ public sealed class DdrMiniDevice : IDisposable
         {
             if (!device.TryOpen(out stream))
             {
-                error = "장치를 열 수 없습니다. 다른 프로그램이 사용 중일 수 있습니다.";
+                // null: 원인 불명 (다른 프로그램이 사용 중일 가능성). 문장은 UI에서 만듭니다.
+                error = null;
                 return null;
             }
 

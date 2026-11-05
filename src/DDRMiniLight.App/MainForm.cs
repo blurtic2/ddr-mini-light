@@ -16,6 +16,7 @@ internal sealed class MainForm : Form
     private readonly Dictionary<LightMode, RadioButton> _modeButtons = new();
     private readonly CheckBox _startupCheck;
     private readonly CheckBox _closeToTrayCheck;
+    private readonly ComboBox _languageCombo;
     private readonly ListBox _logList;
     private readonly Button _assignButton;
     private readonly Label _assignPrompt;
@@ -40,30 +41,30 @@ internal sealed class MainForm : Form
         KeyPreview = true;
 
         // ── 장치 영역 ─────────────────────────────
-        var deviceGroup = new GroupBox { Text = "컨트롤러", Dock = DockStyle.Fill, Padding = new Padding(8) };
+        var deviceGroup = new GroupBox { Text = Strings.PadsGroup, Dock = DockStyle.Fill, Padding = new Padding(8) };
         _devicePanel = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, WrapContents = true };
         _emptyLabel = new Label
         {
-            Text = "DDR Mini 컨트롤러를 찾는 중입니다.\nUSB로 연결하면 자동으로 인식합니다.",
+            Text = Strings.SearchingPads,
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = SystemColors.GrayText,
         };
         var assignBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, WrapContents = false };
-        _assignButton = new Button { Text = "밟아서 1P/2P 지정", AutoSize = true };
+        _assignButton = new Button { Text = Strings.AssignByPressing, AutoSize = true };
         _assignButton.Click += (_, _) =>
         {
             if (_assigningSide == PadSide.Unassigned)
                 StartAssign();
             else
-                EndAssign("지정을 취소했습니다.");
+                EndAssign(Strings.AssignCanceled);
         };
         _assignPrompt = new Label
         {
             AutoSize = true,
             Margin = new Padding(8, 8, 3, 0),
             ForeColor = SystemColors.GrayText,
-            Text = "1P/2P는 꽂힌 USB 포트로 구분합니다.",
+            Text = Strings.PortHint,
         };
         assignBar.Controls.Add(_assignButton);
         assignBar.Controls.Add(_assignPrompt);
@@ -73,39 +74,55 @@ internal sealed class MainForm : Form
         deviceGroup.Controls.Add(assignBar);
 
         // ── LED 모드 ─────────────────────────────
-        var lightGroup = new GroupBox { Text = "LED", Dock = DockStyle.Fill, Padding = new Padding(8) };
+        var lightGroup = new GroupBox { Text = Strings.LedGroup, Dock = DockStyle.Fill, Padding = new Padding(8) };
         var lightLayout = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-        foreach (var (mode, label) in LightModeText.All)
+        foreach (var (mode, label) in Strings.LightModes)
         {
             var radio = new RadioButton { Text = label, AutoSize = true, Tag = mode };
             radio.CheckedChanged += OnModeRadioChanged;
             _modeButtons[mode] = radio;
             lightLayout.Controls.Add(radio);
         }
-        var testButton = new Button { Text = "LED 테스트", AutoSize = true, Margin = new Padding(3, 8, 3, 3) };
+        var testButton = new Button { Text = Strings.LedTest, AutoSize = true, Margin = new Padding(3, 8, 3, 3) };
         testButton.Click += (_, _) => LightTestRequested?.Invoke(this, EventArgs.Empty);
         lightLayout.Controls.Add(testButton);
         lightGroup.Controls.Add(lightLayout);
 
         // ── 옵션 ─────────────────────────────────
-        var optionGroup = new GroupBox { Text = "옵션", Dock = DockStyle.Fill, Padding = new Padding(8) };
+        var optionGroup = new GroupBox { Text = Strings.OptionsGroup, Dock = DockStyle.Fill, Padding = new Padding(8) };
         var optionLayout = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-        _startupCheck = new CheckBox { Text = "Windows 시작 시 자동 실행", AutoSize = true };
+        _startupCheck = new CheckBox { Text = Strings.StartWithWindows, AutoSize = true };
         _startupCheck.CheckedChanged += (_, _) =>
         {
             if (!_updatingControls) StartupChanged?.Invoke(this, _startupCheck.Checked);
         };
-        _closeToTrayCheck = new CheckBox { Text = "닫기 버튼을 누르면 트레이로 숨기기", AutoSize = true };
+        _closeToTrayCheck = new CheckBox { Text = Strings.CloseToTray, AutoSize = true };
         _closeToTrayCheck.CheckedChanged += (_, _) =>
         {
             if (!_updatingControls) CloseToTrayChanged?.Invoke(this, _closeToTrayCheck.Checked);
         };
+
+        // 언어: 라벨 + 드롭다운 한 줄
+        var languageRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 8, 0, 0) };
+        var languageLabel = new Label { Text = Strings.LanguageLabel, AutoSize = true, Margin = new Padding(3, 7, 6, 0) };
+        _languageCombo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
+        foreach (var (language, label) in Strings.LanguageOptions)
+            _languageCombo.Items.Add(new LanguageItem(language, label));
+        _languageCombo.SelectedIndexChanged += (_, _) =>
+        {
+            if (!_updatingControls && _languageCombo.SelectedItem is LanguageItem item)
+                LanguageSelected?.Invoke(this, item.Language);
+        };
+        languageRow.Controls.Add(languageLabel);
+        languageRow.Controls.Add(_languageCombo);
+
         optionLayout.Controls.Add(_startupCheck);
         optionLayout.Controls.Add(_closeToTrayCheck);
+        optionLayout.Controls.Add(languageRow);
         optionGroup.Controls.Add(optionLayout);
 
         // ── 로그 ─────────────────────────────────
-        var logGroup = new GroupBox { Text = "로그", Dock = DockStyle.Fill, Padding = new Padding(8) };
+        var logGroup = new GroupBox { Text = Strings.LogGroup, Dock = DockStyle.Fill, Padding = new Padding(8) };
         _logList = new ListBox
         {
             Dock = DockStyle.Fill,
@@ -141,6 +158,7 @@ internal sealed class MainForm : Form
     public event EventHandler? LightTestRequested;
     public event EventHandler<bool>? StartupChanged;
     public event EventHandler<bool>? CloseToTrayChanged;
+    public event EventHandler<AppLanguage>? LanguageSelected;
 
     /// <summary>닫기 버튼을 눌렀을 때 숨기기만 할지 여부. 컨텍스트가 설정합니다.</summary>
     public bool HideOnClose { get; set; } = true;
@@ -148,7 +166,12 @@ internal sealed class MainForm : Form
     /// <summary>창이 트레이로 숨겨질 때.</summary>
     public event EventHandler? HiddenToTray;
 
-    public void SetOptions(LightMode mode, bool startup, bool closeToTray)
+    private sealed record LanguageItem(AppLanguage Language, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    public void SetOptions(LightMode mode, bool startup, bool closeToTray, AppLanguage language)
     {
         _updatingControls = true;
         try
@@ -156,6 +179,7 @@ internal sealed class MainForm : Form
             _modeButtons[mode].Checked = true;
             _startupCheck.Checked = startup;
             _closeToTrayCheck.Checked = closeToTray;
+            _languageCombo.SelectedItem = _languageCombo.Items.Cast<LanguageItem>().First(i => i.Language == language);
         }
         finally
         {
@@ -218,12 +242,12 @@ internal sealed class MainForm : Form
         if (Cards.Any(c => c.Side == PadSide.Unassigned))
         {
             _assignPrompt.ForeColor = SystemColors.HotTrack;
-            _assignPrompt.Text = "1P/2P가 지정되지 않은 패드가 있습니다.";
+            _assignPrompt.Text = Strings.UnassignedHint;
         }
         else
         {
             _assignPrompt.ForeColor = SystemColors.GrayText;
-            _assignPrompt.Text = "1P/2P는 꽂힌 USB 포트로 구분합니다.";
+            _assignPrompt.Text = Strings.PortHint;
         }
     }
 
@@ -242,7 +266,7 @@ internal sealed class MainForm : Form
     {
         if (!Cards.Any())
         {
-            AppendLog("1P/2P 지정: 연결된 패드가 없습니다.");
+            AppendLog(Strings.AssignNoPads);
             return;
         }
         _assignedInThisRun = null;
@@ -252,16 +276,16 @@ internal sealed class MainForm : Form
     private void SetAssignStep(PadSide side)
     {
         _assigningSide = side;
-        _assignButton.Text = "취소";
+        _assignButton.Text = Strings.Cancel;
         _assignPrompt.ForeColor = SideColors.For(side);
-        _assignPrompt.Text = $"{(side == PadSide.P1 ? "1P" : "2P")} 패드의 아무 버튼이나 누르세요.  (Esc: 취소)";
+        _assignPrompt.Text = Strings.PressPrompt(side == PadSide.P1 ? "1P" : "2P");
     }
 
     private void EndAssign(string message)
     {
         _assigningSide = PadSide.Unassigned;
         _assignedInThisRun = null;
-        _assignButton.Text = "밟아서 1P/2P 지정";
+        _assignButton.Text = Strings.AssignByPressing;
         _assignPrompt.ForeColor = SystemColors.GrayText;
         _assignPrompt.Text = message;
     }
@@ -283,7 +307,7 @@ internal sealed class MainForm : Form
         }
         else
         {
-            EndAssign("지정했습니다. 다음에도 같은 USB 포트에 꽂으면 그대로 유지됩니다.");
+            EndAssign(Strings.AssignDone);
         }
     }
 
@@ -291,7 +315,7 @@ internal sealed class MainForm : Form
     {
         if (e.KeyCode == Keys.Escape && _assigningSide != PadSide.Unassigned)
         {
-            EndAssign("지정을 취소했습니다.");
+            EndAssign(Strings.AssignCanceled);
             e.Handled = true;
         }
         base.OnKeyDown(e);

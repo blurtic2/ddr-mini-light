@@ -67,7 +67,14 @@ internal sealed class DeviceCard : Panel
         };
         _p1Button = SideButton("1P", PadSide.P1);
         _p2Button = SideButton("2P", PadSide.P2);
-        var identify = new Button { Text = "식별", Size = new Size(S(56), S(26)), Margin = new Padding(S(6), S(2), 0, 0) };
+        var identify = new Button
+        {
+            Text = Strings.Identify,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowOnly,
+            Size = new Size(S(56), S(26)),
+            Margin = new Padding(S(6), S(2), 0, 0),
+        };
         identify.Click += (_, _) => IdentifyRequested?.Invoke(this, EventArgs.Empty);
         buttons.Controls.Add(_p1Button);
         buttons.Controls.Add(_p2Button);
@@ -140,8 +147,8 @@ internal sealed class DeviceCard : Panel
         _pad.Buttons = buttons;
         _pad.Lights = _device.Lights;
         _status.Text = _device.SupportsLights
-            ? $"입력: {Describe(buttons)}"
-            : "LED 출력 미지원";
+            ? Strings.Input(Describe(buttons))
+            : Strings.NoLedOutput;
 
         if (_lastButtons == PadButtons.None && buttons != PadButtons.None)
             Pressed?.Invoke(this, EventArgs.Empty);
@@ -158,10 +165,10 @@ internal sealed class DeviceCard : Panel
         if (buttons.HasFlag(PadButtons.Down)) parts.Add("↓");
         if (buttons.HasFlag(PadButtons.Up)) parts.Add("↑");
         if (buttons.HasFlag(PadButtons.Right)) parts.Add("→");
-        if (buttons.HasFlag(PadButtons.MenuLeft)) parts.Add("메뉴◀");
-        if (buttons.HasFlag(PadButtons.Cancel)) parts.Add("취소");
-        if (buttons.HasFlag(PadButtons.Select)) parts.Add("선택");
-        if (buttons.HasFlag(PadButtons.MenuRight)) parts.Add("메뉴▶");
+        if (buttons.HasFlag(PadButtons.MenuLeft)) parts.Add(Strings.MenuLeft);
+        if (buttons.HasFlag(PadButtons.Cancel)) parts.Add(Strings.CancelButton);
+        if (buttons.HasFlag(PadButtons.Select)) parts.Add(Strings.SelectButton);
+        if (buttons.HasFlag(PadButtons.MenuRight)) parts.Add(Strings.MenuRight);
         return string.Join(" ", parts);
     }
 

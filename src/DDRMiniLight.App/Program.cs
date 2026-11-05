@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DDRMiniLight.App;
 
 internal static class Program
@@ -11,9 +13,10 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        using var mutex = new Mutex(initiallyOwned: true, MutexName, out bool isFirstInstance);
+        var mutex = new Mutex(initiallyOwned: true, MutexName, out bool isFirstInstance);
         if (!isFirstInstance)
         {
+            mutex.Dispose();
             // 이미 실행 중이면 기존 창을 띄우고 종료합니다.
             if (EventWaitHandle.TryOpenExisting(ShowWindowEventName, out var showEvent))
             {
@@ -23,10 +26,27 @@ internal static class Program
             return;
         }
 
-        ApplicationConfiguration.Initialize();
+        bool restart;
+        try
+        {
+            ApplicationConfiguration.Initialize();
 
-        bool startMinimized = args.Contains(MinimizedArgument, StringComparer.OrdinalIgnoreCase);
-        using var context = new TrayApplicationContext(startMinimized);
-        Application.Run(context);
+            var settings = AppSettings.Load();
+            Strings.Initialize(settings.Language);
+
+            bool startMinimized = args.Contains(MinimizedArgument, StringComparer.OrdinalIgnoreCase);
+            using var context = new TrayApplicationContext(settings, startMinimized);
+            Application.Run(context);
+            restart = context.RestartRequested;
+        }
+        finally
+        {
+            // 다시 시작할 새 프로세스가 단일 인스턴스 검사를 통과하도록 먼저 놓아 줍니다.
+            mutex.ReleaseMutex();
+            mutex.Dispose();
+        }
+
+        if (restart && Environment.ProcessPath is { } path)
+            Process.Start(path);
     }
 }

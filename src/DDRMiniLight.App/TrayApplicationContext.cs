@@ -8,6 +8,8 @@ namespace DDRMiniLight.App;
 /// </summary>
 internal sealed class TrayApplicationContext : ApplicationContext
 {
+    private const string AppName = "DDR Mini Light";
+
     private readonly AppSettings _settings;
     private readonly PadSideMap _sides;
     private readonly DeviceManager _manager;
@@ -22,9 +24,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private bool _exiting;
     private bool _shutdownStarted;
 
-    public TrayApplicationContext(bool startMinimized)
+    public TrayApplicationContext(AppSettings settings, bool startMinimized)
     {
-        _settings = AppSettings.Load();
+        _settings = settings;
         _sides = new PadSideMap(_settings.PadSides);
 
         _activeIcon = AppIcons.Create(SystemInformation.SmallIconSize.Width, active: true);
@@ -32,11 +34,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
         // ── 메인 창 ──────────────────────────────
         _form = new MainForm(AppIcons.Create(32, active: true)) { HideOnClose = _settings.CloseToTray };
-        _form.SetOptions(_settings.LightMode, StartupRegistration.IsEnabled, _settings.CloseToTray);
+        _form.SetOptions(_settings.LightMode, StartupRegistration.IsEnabled, _settings.CloseToTray, _settings.Language);
         _form.LightModeSelected += (_, mode) => SetLightMode(mode);
         _form.LightTestRequested += (_, _) => RunLightTest();
         _form.StartupChanged += (_, enabled) => SetStartup(enabled);
         _form.CloseToTrayChanged += (_, enabled) => SetCloseToTray(enabled);
+        _form.LanguageSelected += (_, language) => SetLanguage(language);
         _form.HiddenToTray += (_, _) => OnHiddenToTray();
         _form.SideAssignRequested += (_, e) => AssignSide(e.Device, e.Side);
         _form.IdentifyRequested += (_, device) => _ = device.BlinkAsync();
@@ -45,18 +48,18 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
         // ── 트레이 메뉴 ───────────────────────────
         var menu = new ContextMenuStrip();
-        var openItem = new ToolStripMenuItem("창 열기", null, (_, _) => _form.ShowAndActivate())
+        var openItem = new ToolStripMenuItem(Strings.OpenWindow, null, (_, _) => _form.ShowAndActivate())
         {
             Font = new Font(menu.Font, FontStyle.Bold),
         };
-        var modeMenu = new ToolStripMenuItem("LED 모드");
-        foreach (var (mode, label) in LightModeText.All)
+        var modeMenu = new ToolStripMenuItem(Strings.LedMode);
+        foreach (var (mode, label) in Strings.LightModes)
         {
             var item = new ToolStripMenuItem(label, null, (_, _) => SetLightMode(mode));
             _modeMenuItems[mode] = item;
             modeMenu.DropDownItems.Add(item);
         }
-        _startupMenuItem = new ToolStripMenuItem("Windows 시작 시 자동 실행", null, (_, _) => SetStartup(!_startupMenuItem!.Checked))
+        _startupMenuItem = new ToolStripMenuItem(Strings.StartWithWindows, null, (_, _) => SetStartup(!_startupMenuItem!.Checked))
         {
             Checked = StartupRegistration.IsEnabled,
         };
@@ -64,16 +67,16 @@ internal sealed class TrayApplicationContext : ApplicationContext
         menu.Items.Add(openItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(modeMenu);
-        menu.Items.Add(new ToolStripMenuItem("LED 테스트", null, (_, _) => RunLightTest()));
+        menu.Items.Add(new ToolStripMenuItem(Strings.LedTest, null, (_, _) => RunLightTest()));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_startupMenuItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("종료", null, (_, _) => Exit()));
+        menu.Items.Add(new ToolStripMenuItem(Strings.Exit, null, (_, _) => Exit()));
 
         _trayIcon = new NotifyIcon
         {
             Icon = _inactiveIcon,
-            Text = "DDR Mini Light",
+            Text = AppName,
             ContextMenuStrip = menu,
             Visible = true,
         };
@@ -95,7 +98,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
         // ── 장치 관리자 ───────────────────────────
         _manager = new DeviceManager(_settings.LightMode);
-        _manager.Log += (_, message) => RunOnUi(() => _form.AppendLog(message));
+        _manager.Log += (_, e) => RunOnUi(() => _form.AppendLog(Strings.DeviceLog(e)));
         _manager.DeviceConnected += (_, device) => RunOnUi(() =>
         {
             _form.AddDevice(device, _sides.Get(device.Path));
@@ -107,13 +110,16 @@ internal sealed class TrayApplicationContext : ApplicationContext
             UpdateTrayStatus();
         });
 
-        _form.AppendLog("장치 검색을 시작합니다.");
+        _form.AppendLog(Strings.SearchStarted);
         _manager.Start();
         UpdateTrayStatus();
 
         if (!startMinimized)
             _form.ShowAndActivate();
     }
+
+    /// <summary>언어를 바꾸느라 종료했으면 true. <see cref="Program"/>이 앱을 다시 실행합니다.</summary>
+    public bool RestartRequested { get; private set; }
 
     private void AssignSide(DdrMiniDevice device, PadSide side)
     {
@@ -123,7 +129,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _settings.Save();
 
         _form.ApplySides(d => _sides.Get(d.Path));
-        _form.AppendLog($"{SideText(side)}로 지정했습니다.");
+        _form.AppendLog(Strings.AssignedAs(SideText(side)));
         UpdateTrayStatus();
         _ = device.BlinkAsync(times: 1);
     }
@@ -132,7 +138,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         PadSide.P1 => "1P",
         PadSide.P2 => "2P",
-        _ => "미지정",
+        _ => Strings.Unassigned,
     };
 
     private void SetLightMode(LightMode mode)
@@ -140,7 +146,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _manager.LightMode = mode;
         _settings.LightMode = mode;
         _settings.Save();
-        _form.SetOptions(mode, StartupRegistration.IsEnabled, _settings.CloseToTray);
+        RefreshFormOptions();
         UpdateModeMenu();
     }
 
@@ -152,12 +158,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
         catch (Exception ex)
         {
-            _form.AppendLog($"자동 실행 설정 실패: {ex.Message}");
+            _form.AppendLog(Strings.StartupFailed(ex.Message));
         }
 
-        bool actual = StartupRegistration.IsEnabled;
-        _startupMenuItem.Checked = actual;
-        _form.SetOptions(_settings.LightMode, actual, _settings.CloseToTray);
+        _startupMenuItem.Checked = StartupRegistration.IsEnabled;
+        RefreshFormOptions();
     }
 
     private void SetCloseToTray(bool enabled)
@@ -167,11 +172,35 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _form.HideOnClose = enabled;
     }
 
+    private void SetLanguage(AppLanguage language)
+    {
+        _settings.Language = language;
+        _settings.Save();
+
+        // 자동 선택 결과가 지금 언어와 같으면 다시 시작할 필요가 없습니다.
+        if (Strings.Resolve(language) == Strings.Language)
+            return;
+
+        var answer = MessageBox.Show(_form, Strings.RestartPrompt, AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        if (answer == DialogResult.Yes)
+        {
+            RestartRequested = true;
+            Exit();
+        }
+        else
+        {
+            _form.AppendLog(Strings.RestartLater);
+        }
+    }
+
+    private void RefreshFormOptions() =>
+        _form.SetOptions(_settings.LightMode, StartupRegistration.IsEnabled, _settings.CloseToTray, _settings.Language);
+
     private void RunLightTest()
     {
         if (_manager.Devices.Count == 0)
         {
-            _form.AppendLog("LED 테스트: 연결된 장치가 없습니다.");
+            _form.AppendLog(Strings.LedTestNoPads);
             return;
         }
         _ = _manager.RunLightTestAsync();
@@ -182,11 +211,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (_settings.TrayHintShown)
             return;
 
-        _trayIcon.ShowBalloonTip(
-            3000,
-            "DDR Mini Light",
-            "트레이에서 계속 실행 중입니다. 종료하려면 트레이 아이콘을 우클릭하세요.",
-            ToolTipIcon.Info);
+        _trayIcon.ShowBalloonTip(3000, AppName, Strings.TrayHint, ToolTipIcon.Info);
         _settings.TrayHintShown = true;
         _settings.Save();
     }
@@ -205,9 +230,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             .Select(SideText)
             .ToList();
         _trayIcon.Icon = sides.Count > 0 ? _activeIcon : _inactiveIcon;
-        _trayIcon.Text = sides.Count > 0
-            ? $"DDR Mini Light - {string.Join(", ", sides)} 연결됨"
-            : "DDR Mini Light - 연결된 장치 없음";
+        string status = sides.Count > 0 ? Strings.TrayConnected(string.Join(", ", sides)) : Strings.TrayNoPads;
+        string text = $"{AppName} - {status}";
+        _trayIcon.Text = text.Length <= 127 ? text : text[..127]; // NotifyIcon.Text 최대 길이
     }
 
     private void RunOnUi(Action action)

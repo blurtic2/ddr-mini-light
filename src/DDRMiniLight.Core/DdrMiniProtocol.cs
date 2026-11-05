@@ -66,7 +66,7 @@ public static class DdrMiniProtocol
     public static void WriteLightReport(PadButtons lights, Span<byte> buffer)
     {
         if (buffer.Length < LightReportLength)
-            throw new ArgumentException($"버퍼는 최소 {LightReportLength}바이트여야 합니다.", nameof(buffer));
+            throw new ArgumentException($"Buffer must be at least {LightReportLength} bytes.", nameof(buffer));
 
         buffer.Clear();
         buffer[0] = LightReportId;

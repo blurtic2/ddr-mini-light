@@ -5,19 +5,19 @@
 A Windows tray app that lights up the arrow LEDs of the **DDR Classic Mini** 1P/2P pads (PHOENIXWAN, VID `0x33DD` / PID `0x0014`) to match your input when the pads are connected to a PC.
 
 > This is an unofficial fan-made tool. It is not affiliated with or endorsed by KONAMI or the hardware manufacturer.
-> The app's user interface is currently in Korean only.
 
 ## Features
 
 - Lights up the LED of each pressed arrow (modes: **pressed buttons only** / **always on** / **off**)
 - Supports multiple pads at once, with automatic USB connect/disconnect detection
-- 1P/2P assignment: click **"밟아서 1P/2P 지정"** (assign by pressing) and press any button on the 1P pad, or use the 1P/2P buttons on each pad card
-  - Assigned pads are shown in 1P → 2P order. The **"식별"** (identify) button blinks that pad's LEDs
+- 1P/2P assignment: click **Assign 1P/2P by pressing** and press any button on the 1P pad, or use the 1P/2P buttons on each pad card
+  - Assigned pads are shown in 1P → 2P order. The **Identify** button blinks that pad's LEDs
 - Shows each pad's input (4 arrows + the bottom Menu Left / Cancel / Select / Menu Right buttons) and LED state in real time
 - Stays in the system tray: closing the window hides it to the tray. The tray menu changes the mode, runs an LED test, or exits
 - Optional start with Windows (starts hidden in the tray)
 - Single instance: launching it again opens the existing window
 - Turns all LEDs off on exit
+- English, Korean, and Japanese UI. Follows the Windows display language by default; change it under **Options → Language**
 
 ## Download
 
@@ -52,6 +52,7 @@ DDRMiniLight.sln
 │     ├─ MainForm.cs              Main window
 │     ├─ Controls/PadView.cs      Pad drawing
 │     ├─ Controls/DeviceCard.cs   Per-pad card
+│     ├─ Strings.cs               UI text (Korean / English / Japanese)
 │     ├─ AppSettings.cs           %AppData%\DDRMiniLight\settings.json
 │     ├─ StartupRegistration.cs   Start with Windows (HKCU\...\Run)
 │     └─ AppIcons.cs              App/tray icons (drawn at runtime)

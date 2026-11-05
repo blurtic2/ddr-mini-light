@@ -23,7 +23,7 @@ public sealed class DeviceManager : IDisposable
 
     public event EventHandler<DdrMiniDevice>? DeviceConnected;
     public event EventHandler<DdrMiniDevice>? DeviceDisconnected;
-    public event EventHandler<string>? Log;
+    public event EventHandler<DeviceLogEventArgs>? Log;
 
     public IReadOnlyList<DdrMiniDevice> Devices
     {
@@ -72,7 +72,7 @@ public sealed class DeviceManager : IDisposable
         }
         catch (Exception ex)
         {
-            RaiseLog($"장치 목록을 가져오지 못했습니다: {ex.Message}");
+            RaiseLog(new DeviceLogEventArgs(DeviceLogKind.EnumerationFailed, detail: ex.Message));
             return;
         }
 
@@ -106,7 +106,7 @@ public sealed class DeviceManager : IDisposable
                 if (device is null)
                 {
                     _failedPaths.Add(hid.DevicePath);
-                    RaiseLog($"장치 열기 실패: {error}");
+                    RaiseLog(new DeviceLogEventArgs(DeviceLogKind.OpenFailed, detail: error));
                     continue;
                 }
 
@@ -120,11 +120,11 @@ public sealed class DeviceManager : IDisposable
             device.Start();
 
         foreach (var device in removed)
-            CloseDevice(device, "분리됨");
+            CloseDevice(device, error: null);
 
         foreach (var device in connected)
         {
-            RaiseLog($"연결됨: {device.DisplayName}" + (device.SupportsLights ? "" : " (LED 출력 미지원)"));
+            RaiseLog(new DeviceLogEventArgs(DeviceLogKind.Connected, device));
             DeviceConnected?.Invoke(this, device);
         }
     }
@@ -175,18 +175,20 @@ public sealed class DeviceManager : IDisposable
         }
 
         // 읽기 스레드에서 호출되므로 정리는 다른 스레드에서 합니다.
-        ThreadPool.QueueUserWorkItem(_ => CloseDevice(device, error is null ? "분리됨" : $"연결 끊김 ({error.Message})"));
+        ThreadPool.QueueUserWorkItem(_ => CloseDevice(device, error));
     }
 
-    private void CloseDevice(DdrMiniDevice device, string reason)
+    private void CloseDevice(DdrMiniDevice device, Exception? error)
     {
         device.Disconnected -= OnDeviceDisconnected;
         device.Dispose();
-        RaiseLog($"{reason}: {device.DisplayName}");
+        RaiseLog(error is null
+            ? new DeviceLogEventArgs(DeviceLogKind.Disconnected, device)
+            : new DeviceLogEventArgs(DeviceLogKind.ConnectionLost, device, error.Message));
         DeviceDisconnected?.Invoke(this, device);
     }
 
-    private void RaiseLog(string message) => Log?.Invoke(this, message);
+    private void RaiseLog(DeviceLogEventArgs e) => Log?.Invoke(this, e);
 
     public void Dispose()
     {

@@ -20,6 +20,9 @@ internal sealed class AppSettings
 
     public LightMode LightMode { get; set; } = LightMode.Mirror;
 
+    /// <summary>화면 언어. Auto는 Windows 표시 언어를 따릅니다.</summary>
+    public AppLanguage Language { get; set; } = AppLanguage.Auto;
+
     /// <summary>창의 닫기 버튼을 누르면 종료하지 않고 트레이로 숨깁니다.</summary>
     public bool CloseToTray { get; set; } = true;
 
