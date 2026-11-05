@@ -17,7 +17,13 @@ internal sealed class MainForm : Form
     private readonly CheckBox _startupCheck;
     private readonly CheckBox _closeToTrayCheck;
     private readonly ListBox _logList;
+    private readonly Button _assignButton;
+    private readonly Label _assignPrompt;
     private bool _updatingControls;
+
+    // "밟아서 지정" 진행 상태: 지금 지정을 기다리는 쪽 (Unassigned면 진행 중 아님)
+    private PadSide _assigningSide;
+    private DdrMiniDevice? _assignedInThisRun;
 
     public MainForm(Icon icon)
     {
@@ -29,8 +35,9 @@ internal sealed class MainForm : Form
         Text = "DDR Mini Light";
         Icon = icon;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(640, 660);
-        MinimumSize = new Size(520, 600);
+        ClientSize = new Size(640, 730);
+        MinimumSize = new Size(520, 680);
+        KeyPreview = true;
 
         // ── 장치 영역 ─────────────────────────────
         var deviceGroup = new GroupBox { Text = "컨트롤러", Dock = DockStyle.Fill, Padding = new Padding(8) };
@@ -42,8 +49,28 @@ internal sealed class MainForm : Form
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = SystemColors.GrayText,
         };
+        var assignBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, WrapContents = false };
+        _assignButton = new Button { Text = "밟아서 1P/2P 지정", AutoSize = true };
+        _assignButton.Click += (_, _) =>
+        {
+            if (_assigningSide == PadSide.Unassigned)
+                StartAssign();
+            else
+                EndAssign("지정을 취소했습니다.");
+        };
+        _assignPrompt = new Label
+        {
+            AutoSize = true,
+            Margin = new Padding(8, 8, 3, 0),
+            ForeColor = SystemColors.GrayText,
+            Text = "1P/2P는 꽂힌 USB 포트로 구분합니다.",
+        };
+        assignBar.Controls.Add(_assignButton);
+        assignBar.Controls.Add(_assignPrompt);
+
         deviceGroup.Controls.Add(_devicePanel);
         deviceGroup.Controls.Add(_emptyLabel);
+        deviceGroup.Controls.Add(assignBar);
 
         // ── LED 모드 ─────────────────────────────
         var lightGroup = new GroupBox { Text = "LED", Dock = DockStyle.Fill, Padding = new Padding(8) };
@@ -96,7 +123,7 @@ internal sealed class MainForm : Form
         settingsRow.Controls.Add(optionGroup, 1, 0);
 
         var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(8) };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 356));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.Controls.Add(deviceGroup, 0, 0);
@@ -136,23 +163,138 @@ internal sealed class MainForm : Form
         }
     }
 
-    public void AddDevice(DdrMiniDevice device)
+    /// <summary>사용자가 패드를 1P/2P로 지정했을 때 (카드 버튼 또는 밟아서 지정).</summary>
+    public event EventHandler<(DdrMiniDevice Device, PadSide Side)>? SideAssignRequested;
+
+    /// <summary>사용자가 패드 식별(LED 깜빡임)을 요청했을 때.</summary>
+    public event EventHandler<DdrMiniDevice>? IdentifyRequested;
+
+    private IEnumerable<DeviceCard> Cards => _devicePanel.Controls.OfType<DeviceCard>();
+
+    public void AddDevice(DdrMiniDevice device, PadSide side)
     {
-        if (_devicePanel.Controls.OfType<DeviceCard>().Any(c => c.Device == device))
+        if (Cards.Any(c => c.Device == device))
             return;
+
         // 폼의 자동 스케일 이후에 추가되는 컨트롤이라 현재 DPI를 직접 넘깁니다.
-        _devicePanel.Controls.Add(new DeviceCard(device, DeviceDpi));
+        var card = new DeviceCard(device, DeviceDpi) { Side = side };
+        card.SideRequested += (_, s) => SideAssignRequested?.Invoke(this, (device, s));
+        card.IdentifyRequested += (_, _) => IdentifyRequested?.Invoke(this, device);
+        card.Pressed += (_, _) => OnCardPressed(card);
+        _devicePanel.Controls.Add(card);
+        SortCards();
         UpdateEmptyState();
+        UpdateAssignHint();
     }
 
     public void RemoveDevice(DdrMiniDevice device)
     {
-        var card = _devicePanel.Controls.OfType<DeviceCard>().FirstOrDefault(c => c.Device == device);
+        var card = Cards.FirstOrDefault(c => c.Device == device);
         if (card is null)
             return;
         _devicePanel.Controls.Remove(card);
         card.Dispose();
+        if (_assignedInThisRun == device)
+            _assignedInThisRun = null;
         UpdateEmptyState();
+        UpdateAssignHint();
+    }
+
+    /// <summary>각 카드의 1P/2P 표시를 갱신하고 1P → 2P → 미지정 순으로 정렬합니다.</summary>
+    public void ApplySides(Func<DdrMiniDevice, PadSide> getSide)
+    {
+        foreach (var card in Cards)
+            card.Side = getSide(card.Device);
+        SortCards();
+        UpdateAssignHint();
+    }
+
+    /// <summary>지정 진행 중이 아닐 때, 미지정 패드가 있으면 안내 문구를 보여줍니다.</summary>
+    private void UpdateAssignHint()
+    {
+        if (_assigningSide != PadSide.Unassigned)
+            return;
+
+        if (Cards.Any(c => c.Side == PadSide.Unassigned))
+        {
+            _assignPrompt.ForeColor = SystemColors.HotTrack;
+            _assignPrompt.Text = "1P/2P가 지정되지 않은 패드가 있습니다.";
+        }
+        else
+        {
+            _assignPrompt.ForeColor = SystemColors.GrayText;
+            _assignPrompt.Text = "1P/2P는 꽂힌 USB 포트로 구분합니다.";
+        }
+    }
+
+    private void SortCards()
+    {
+        var ordered = Cards
+            .OrderBy(c => c.Side == PadSide.Unassigned ? int.MaxValue : (int)c.Side)
+            .ToList();
+        for (int i = 0; i < ordered.Count; i++)
+            _devicePanel.Controls.SetChildIndex(ordered[i], i);
+    }
+
+    // ── 밟아서 지정 ────────────────────────────────
+
+    private void StartAssign()
+    {
+        if (!Cards.Any())
+        {
+            AppendLog("1P/2P 지정: 연결된 패드가 없습니다.");
+            return;
+        }
+        _assignedInThisRun = null;
+        SetAssignStep(PadSide.P1);
+    }
+
+    private void SetAssignStep(PadSide side)
+    {
+        _assigningSide = side;
+        _assignButton.Text = "취소";
+        _assignPrompt.ForeColor = SideColors.For(side);
+        _assignPrompt.Text = $"{(side == PadSide.P1 ? "1P" : "2P")} 패드의 아무 화살표나 밟으세요.  (Esc: 취소)";
+    }
+
+    private void EndAssign(string message)
+    {
+        _assigningSide = PadSide.Unassigned;
+        _assignedInThisRun = null;
+        _assignButton.Text = "밟아서 1P/2P 지정";
+        _assignPrompt.ForeColor = SystemColors.GrayText;
+        _assignPrompt.Text = message;
+    }
+
+    private void OnCardPressed(DeviceCard card)
+    {
+        if (_assigningSide == PadSide.Unassigned || card.Device == _assignedInThisRun)
+            return;
+
+        var side = _assigningSide;
+        SideAssignRequested?.Invoke(this, (card.Device, side));
+
+        // 두 대뿐이면 나머지는 자동으로 반대쪽이 되므로 1P만 받으면 끝납니다.
+        int remaining = Cards.Count(c => c.Device != card.Device);
+        if (side == PadSide.P1 && remaining > 1)
+        {
+            _assignedInThisRun = card.Device;
+            SetAssignStep(PadSide.P2);
+        }
+        else
+        {
+            EndAssign("지정했습니다. 다음에도 같은 USB 포트에 꽂으면 그대로 유지됩니다.");
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Escape && _assigningSide != PadSide.Unassigned)
+        {
+            EndAssign("지정을 취소했습니다.");
+            e.Handled = true;
+        }
+        base.OnKeyDown(e);
     }
 
     public void AppendLog(string message)

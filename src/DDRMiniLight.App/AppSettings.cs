@@ -23,6 +23,9 @@ internal sealed class AppSettings
     /// <summary>창의 닫기 버튼을 누르면 종료하지 않고 트레이로 숨깁니다.</summary>
     public bool CloseToTray { get; set; } = true;
 
+    /// <summary>장치 경로(USB 포트마다 고유) → 1P/2P.</summary>
+    public Dictionary<string, PadSide> PadSides { get; set; } = new();
+
     /// <summary>트레이로 숨겼다는 알림을 이미 보여줬는지.</summary>
     public bool TrayHintShown { get; set; }
 

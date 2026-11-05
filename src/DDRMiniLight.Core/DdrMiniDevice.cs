@@ -134,6 +134,29 @@ public sealed class DdrMiniDevice : IDisposable
         UpdateLights();
     }
 
+    /// <summary>이 패드의 LED만 깜빡여서 어느 패드인지 알려줍니다.</summary>
+    public async Task BlinkAsync(int times = 3, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            for (int i = 0; i < times; i++)
+            {
+                SetLightOverride(PadButtons.All);
+                await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+                SetLightOverride(PadButtons.None);
+                await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (_disposed == 0)
+                SetLightOverride(null);
+        }
+    }
+
     private void ReadLoop()
     {
         var token = _cts.Token;

@@ -9,6 +9,7 @@ namespace DDRMiniLight.App;
 internal sealed class TrayApplicationContext : ApplicationContext
 {
     private readonly AppSettings _settings;
+    private readonly PadSideMap _sides;
     private readonly DeviceManager _manager;
     private readonly MainForm _form;
     private readonly NotifyIcon _trayIcon;
@@ -24,6 +25,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     public TrayApplicationContext(bool startMinimized)
     {
         _settings = AppSettings.Load();
+        _sides = new PadSideMap(_settings.PadSides);
 
         _activeIcon = AppIcons.Create(SystemInformation.SmallIconSize.Width, active: true);
         _inactiveIcon = AppIcons.Create(SystemInformation.SmallIconSize.Width, active: false);
@@ -36,6 +38,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _form.StartupChanged += (_, enabled) => SetStartup(enabled);
         _form.CloseToTrayChanged += (_, enabled) => SetCloseToTray(enabled);
         _form.HiddenToTray += (_, _) => OnHiddenToTray();
+        _form.SideAssignRequested += (_, e) => AssignSide(e.Device, e.Side);
+        _form.IdentifyRequested += (_, device) => _ = device.BlinkAsync();
         _form.FormClosed += (_, _) => ExitThread();
         _ = _form.Handle; // 숨긴 상태에서도 BeginInvoke를 쓸 수 있도록 핸들을 미리 만듭니다.
 
@@ -94,7 +98,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _manager.Log += (_, message) => RunOnUi(() => _form.AppendLog(message));
         _manager.DeviceConnected += (_, device) => RunOnUi(() =>
         {
-            _form.AddDevice(device);
+            _form.AddDevice(device, _sides.Get(device.Path));
             UpdateTrayStatus();
         });
         _manager.DeviceDisconnected += (_, device) => RunOnUi(() =>
@@ -110,6 +114,26 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (!startMinimized)
             _form.ShowAndActivate();
     }
+
+    private void AssignSide(DdrMiniDevice device, PadSide side)
+    {
+        var connected = _manager.Devices.Select(d => d.Path).ToList();
+        _sides.Assign(device.Path, side, connected);
+        _settings.PadSides = new Dictionary<string, PadSide>(_sides.Entries, StringComparer.OrdinalIgnoreCase);
+        _settings.Save();
+
+        _form.ApplySides(d => _sides.Get(d.Path));
+        _form.AppendLog($"{SideText(side)}로 지정했습니다.");
+        UpdateTrayStatus();
+        _ = device.BlinkAsync(times: 1);
+    }
+
+    private static string SideText(PadSide side) => side switch
+    {
+        PadSide.P1 => "1P",
+        PadSide.P2 => "2P",
+        _ => "미지정",
+    };
 
     private void SetLightMode(LightMode mode)
     {
@@ -175,9 +199,15 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void UpdateTrayStatus()
     {
-        int count = _manager.Devices.Count;
-        _trayIcon.Icon = count > 0 ? _activeIcon : _inactiveIcon;
-        _trayIcon.Text = count > 0 ? $"DDR Mini Light - {count}대 연결됨" : "DDR Mini Light - 연결된 장치 없음";
+        var sides = _manager.Devices
+            .Select(d => _sides.Get(d.Path))
+            .OrderBy(s => s == PadSide.Unassigned ? int.MaxValue : (int)s)
+            .Select(SideText)
+            .ToList();
+        _trayIcon.Icon = sides.Count > 0 ? _activeIcon : _inactiveIcon;
+        _trayIcon.Text = sides.Count > 0
+            ? $"DDR Mini Light - {string.Join(", ", sides)} 연결됨"
+            : "DDR Mini Light - 연결된 장치 없음";
     }
 
     private void RunOnUi(Action action)
