@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.ko.md) | [日本語](README.ja.md)
 
-A Windows tray app that lights up the arrow LEDs of the **DDR Classic Mini** 1P/2P pads (PHOENIXWAN, VID `0x33DD` / PID `0x0014`) to match your input when the pads are connected to a PC.
+A Windows tray app that lights up the arrow LEDs of the **DDR Classic Mini** 1P/2P pads (USB VID `0x33DD` / PID `0x0014`) to match your input when the pads are connected to a PC.
 
 > This is an unofficial fan-made tool. It is not affiliated with or endorsed by KONAMI or the hardware manufacturer.
 

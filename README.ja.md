@@ -2,7 +2,7 @@
 
 [English](README.md) | [한국어](README.ko.md) | **日本語**
 
-**DDR Classic Mini** の 1P/2P パッド（PHOENIXWAN、VID `0x33DD` / PID `0x0014`）を PC に接続したとき、入力に合わせて矢印の LED を点灯させる Windows 用タスクトレイアプリです。
+**DDR Classic Mini** の 1P/2P パッド（USB VID `0x33DD` / PID `0x0014`）を PC に接続したとき、入力に合わせて矢印の LED を点灯させる Windows 用タスクトレイアプリです。
 
 > 非公式のファンメイドツールです。KONAMI およびハードウェアメーカーとは関係ありません。
 

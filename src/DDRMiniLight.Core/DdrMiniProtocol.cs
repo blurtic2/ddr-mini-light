@@ -1,7 +1,7 @@
 namespace DDRMiniLight.Core;
 
 /// <summary>
-/// DDR Mini 컨트롤러(PHOENIXWAN)의 HID 리포트 형식.
+/// DDR Classic Mini 패드의 HID 리포트 형식.
 /// 모든 인덱스는 리포트 ID 바이트(<c>[0]</c>)를 포함한 버퍼 기준입니다.
 /// </summary>
 public static class DdrMiniProtocol

@@ -2,7 +2,7 @@
 
 [English](README.md) | **한국어** | [日本語](README.ja.md)
 
-DDR Classic Mini의 1P/2P 패드(PHOENIXWAN, VID `0x33DD` / PID `0x0014`)를 PC에 연결했을 때, 화살표 LED를 입력에 맞춰 켜 주는 Windows 트레이 앱입니다.
+DDR Classic Mini의 1P/2P 패드(USB VID `0x33DD` / PID `0x0014`)를 PC에 연결했을 때, 화살표 LED를 입력에 맞춰 켜 주는 Windows 트레이 앱입니다.
 
 > 비공식 팬메이드 도구입니다. KONAMI나 하드웨어 제조사와는 관계가 없습니다.
 
